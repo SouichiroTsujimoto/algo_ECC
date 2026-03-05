@@ -39,3 +39,11 @@ https://qiita.com/tnakagawa/items/35c5f02d6a47ec773eb3
 # Dual_EC_DRBG
 https://www.cryptrec.go.jp/topics/cryptrec-er-0001-2013.html
 https://techmedia-think.hatenablog.com/entry/2020/10/14/235117
+
+# 離散対数
+https://ipsj.ixsq.nii.ac.jp/record/4333/files/IPSJ-MGN340207.pdf
+
+# シュノア署名
+https://qiita.com/tnakagawa/items/a68606f005630cd09415
+## BIP340
+https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki
