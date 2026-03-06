@@ -47,3 +47,8 @@ https://ipsj.ixsq.nii.ac.jp/record/4333/files/IPSJ-MGN340207.pdf
 https://qiita.com/tnakagawa/items/a68606f005630cd09415
 ## BIP340
 https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki
+
+
+# ssh
+## handshake
+https://goteleport.com/blog/ssh-handshake-explained/
