@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>楕円曲線暗号 - 実装を通して学ぼう</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --accent-primary: #00d4aa;
+            --accent-secondary: #e94560;
+            --accent-gold: #ffd700;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --border-color: #2a2a4a;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* スライドコンテナ */
+        .slide-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            /* max-width: 1200px; */
+            height: 100%;
+            /* max-height: 900px; */
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            flex-direction: column;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ヘッダー */
+        .slide-header {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+
+        .slide-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        .slide-subtitle {
+            font-size: 1.2rem;
+            color: var(--accent-primary);
+            margin-top: 8px;
+        }
+
+        /* コンテンツ */
+        .slide-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 1.15rem;
+            line-height: 1.8;
+        }
+
+        .slide-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slide-content::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .slide-content::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 4px;
+        }
+
+        /* タイトルスライド */
+        .title-slide {
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+        }
+
+        .title-slide .main-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-slide .subtitle {
+            font-size: 1.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 60px;
+        }
+
+        .title-slide .author {
+            font-size: 1.3rem;
+            color: var(--accent-primary);
+        }
+
+        /* リスト */
+        ul, ol {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 12px 0;
+        }
+
+        /* カード */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin: 30px 0;
+        }
+
+        .card {
+            background: var(--bg-tertiary);
+            padding: 24px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .card h3 {
+            color: var(--accent-primary);
+            margin-bottom: 12px;
+            font-size: 1.3rem;
+        }
+
+        .card-alt {
+            border-left-color: var(--accent-secondary);
+        }
+
+        .card-alt h3 {
+            color: var(--accent-secondary);
+        }
+
+        /* ハイライト */
+        .highlight {
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .code {
+            background: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+        }
+
+        /* 数式ボックス */
+        .formula-box {
+            background: var(--bg-primary);
+            padding: 24px 32px;
+            border-radius: 12px;
+            margin: 24px 0;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .formula-box .katex {
+            font-size: 1.4em;
+        }
+
+        /* 2カラムレイアウト */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            /* height: 100%; */
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .column-title {
+            color: var(--accent-primary);
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+
+        .column-alt .column-title {
+            color: var(--accent-secondary);
+            border-bottom-color: var(--accent-secondary);
+        }
+
+        /* ステップリスト */
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+        }
+
+        .steps li {
+            position: relative;
+            padding-left: 50px;
+            margin: 16px 0;
+            counter-increment: step;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* タイムライン */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            background: var(--accent-primary);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin: 24px 0;
+            padding-left: 24px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 8px;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            border: 3px solid var(--bg-secondary);
+        }
+
+        .timeline-item.alert::before {
+            background: var(--accent-secondary);
+        }
+
+        .timeline-year {
+            color: var(--accent-gold);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* 図解エリア */
+        .diagram {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        /* 情報ボックス */
+        .info-box {
+            background: rgba(0, 212, 170, 0.1);
+            border-left: 4px solid var(--accent-primary);
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .warning-box {
+            background: rgba(233, 69, 96, 0.1);
+            border-left-color: var(--accent-secondary);
+        }
+
+        /* ナビゲーション */
+        .navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 40px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .nav-btn {
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .slide-counter span {
+            color: var(--accent-primary);
+            font-weight: 700;
+        }
+
+        /* プログレスバー */
+        .progress-container {
+            height: 4px;
+            background: var(--bg-tertiary);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-gold));
+            transition: width 0.3s ease;
+        }
+
+        /* キーボードヒント */
+        .keyboard-hint {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .key {
+            background: var(--bg-primary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* SVG図解 */
+        .curve-svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--accent-primary);
+            font-weight: 600;
+            background: var(--bg-tertiary);
+        }
+
+        /* 演習スライド */
+        .exercise-box {
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-primary) 100%);
+            border: 2px solid var(--accent-primary);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .exercise-box h2 {
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+        }
+
+        /* リンク */
+        a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* 注釈 */
+        .note {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 12px;
+            padding-left: 16px;
+            border-left: 2px solid var(--text-secondary);
+        }
+
+        /* フロー図 */
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-node {
+            background: var(--bg-tertiary);
+            padding: 16px 24px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .flow-node.alice {
+            border: 2px solid var(--accent-primary);
+        }
+
+        .flow-node.bob {
+            border: 2px solid var(--accent-secondary);
+        }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--accent-gold);
+        }
+
+        /* 数式カラム */
+        .math-derivation {
+            background: var(--bg-primary);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+
+        .math-step {
+            margin: 12px 0;
+            padding: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- スライドコンテナ -->
+    <div class="slide-container">
+        
+        <!-- Slide 1: タイトル -->
+        <div class="slide title-slide active" data-slide="1">
+            <h1 class="main-title">楕円曲線暗号</h1>
+            <p class="subtitle">実装を通して学ぼう</p>
+            <p class="author">wuhu1sland (49th)</p>
+        </div>
+
+        <!-- Slide 2: 暗号の分類 -->
+        <div class="slide" data-slide="2">
+            <div class="slide-header">
+                <h2 class="slide-title">暗号の分類</h2>
+            </div>
+            <div class="slide-content">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3>🔐 共通鍵暗号</h3>
+                        <ul>
+                            <li><span class="highlight">AES</span>
+                                <ul>
+                                    <li>使用例: Wi-Fi, SSH (暗号化)</li>
+                                </ul>
+                            </li>
+                            <li><span class="highlight">ChaCha20</span>
+                                <ul>
+                                    <li>使用例: WireGuard (暗号化)</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card card-alt">
+                        <h3>🔑 公開鍵暗号</h3>
+                        <ul>
+                            <li><span class="highlight">RSA</span>
+                                <ul>
+                                    <li>使用例: HTTPS, SSH, VPN<br>(署名、鍵交換など)</li>
+                                </ul>
+                            </li>
+                            <li><span class="highlight">ECC (楕円曲線暗号)</span>
+                                <ul>
+                                    <li>使用例: HTTPS, SSH, VPN<br>(署名、鍵交換など)</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <strong>ポイント:</strong> 共通鍵暗号は<span class="highlight">暗号化</span>、公開鍵暗号は<span class="highlight">認証</span>に使用されると思っておけば大抵の場合問題ない
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 署名とは -->
+        <div class="slide" data-slide="3">
+            <div class="slide-header">
+                <h2 class="slide-title">署名とは</h2>
+            </div>
+            <div class="slide-content">
+                <p>デジタル署名は、メッセージの<span class="highlight">真正性</span>と<span class="highlight">改竄検知</span>を保証する仕組みです。</p>
+                
+                <div class="flow-diagram">
+                    <div class="flow-node alice">
+                        <strong>Alice</strong><br>
+                        <small>秘密鍵で署名</small>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node">
+                        <strong>メッセージ</strong><br>
+                        <small>+ 署名</small>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node bob">
+                        <strong>Bob</strong><br>
+                        <small>公開鍵で検証</small>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>仕組み:</strong><br>
+                    1. Aliceが自分の<span class="highlight">秘密鍵</span>でメッセージに署名<br>
+                    2. BobがAliceの<span class="highlight">公開鍵</span>で署名を検証<br>
+                    3. 検証が通れば「Aliceが書いた」かつ「改竄されていない」ことが保証される
+                </div>
+
+                <p class="note">
+                    参考: <a href="https://ja.wikipedia.org/wiki/%E3%83%87%E3%82%B8%E3%82%BF%E3%83%AB%E7%BD%B2%E5%90%8D" target="_blank">デジタル署名 - Wikipedia</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 4: 鍵交換とは -->
+        <div class="slide" data-slide="4">
+            <div class="slide-header">
+                <h2 class="slide-title">鍵交換とは</h2>
+                <p class="slide-subtitle">= 鍵共有</p>
+            </div>
+            <div class="slide-content">
+                <div class="info-box">
+                    <strong>定義:</strong> 事前の秘密の共有無しに、盗聴の可能性のある通信路を使って、暗号鍵の共有を可能にすること
+                </div>
+
+                <div class="flow-diagram">
+                    <div class="flow-node alice">
+                        <strong>Alice</strong><br>
+                        <small>秘密鍵 a</small>
+                    </div>
+                    <span class="flow-arrow">⇄</span>
+                    <div class="flow-node" style="border-color: var(--accent-gold);">
+                        <strong>公開通信路</strong><br>
+                        <small>盗聴される可能性あり</small>
+                    </div>
+                    <span class="flow-arrow">⇄</span>
+                    <div class="flow-node bob">
+                        <strong>Bob</strong><br>
+                        <small>秘密鍵 b</small>
+                    </div>
+                </div>
+
+                <div class="info-box" style="background: rgba(255, 215, 0, 0.1); border-left-color: var(--accent-gold);">
+                    <strong>結果:</strong> Alice と Bob は同じ<span class="highlight">共有秘密</span>を持つことができる<br>
+                    傍受者は公開情報から共有秘密を計算できない
+                </div>
+
+                <p class="note">
+                    参考: <a href="https://ja.wikipedia.org/wiki/%E3%83%87%E3%82%A3%E3%83%95%E3%82%A3%E3%83%BC%E3%83%BB%E3%83%98%E3%83%AB%E3%83%9E%E3%83%B3%E9%8D%B5%E5%85%B1%E6%9C%89" target="_blank">Diffie-Hellman鍵共有 - Wikipedia</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 5: RSAとECCの最大の違い -->
+        <div class="slide" data-slide="5">
+            <div class="slide-header">
+                <h2 class="slide-title">RSAとECCの最大の違い</h2>
+                <p class="slide-subtitle">安全性の根拠</p>
+            </div>
+            <div class="slide-content">
+                <div class="two-column">
+                    <div class="column column-alt">
+                        <div class="column-title">RSA: 素因数分解の困難性</div>
+                        <p>大きな合成数を素因数分解することは計算量的に困難</p>
+                        <div class="formula-box">
+                            <p>N = p × q</p>
+                            <p style="font-size: 0.9rem; margin-top: 12px; color: var(--text-secondary);">
+                                p, q: 大きな素数<br>
+                                N から p, q を求めるのは困難
+                            </p>
+                        </div>
+                        <p class="note">RSAのアルゴリズム詳細は省略</p>
+                    </div>
+                    <div class="column">
+                        <div class="column-title">ECC: 離散対数問題の困難性</div>
+                        <p>素数 $p$ と、$p$ 未満の自然数 $g, x$ を用いて:</p>
+                        <div class="formula-box">
+                            $$g^x \equiv m \pmod{p}$$
+                        </div>
+                        <ul>
+                            <li>$m$ を求めるのは簡単（順に計算）</li>
+                            <li>$g, p, m$ から $x$ を求めるのは<span class="highlight">困難</span></li>
+                            <li>$x$ は $g$ を底とする $m$ の<strong>離散対数</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: ECCとは -->
+        <div class="slide" data-slide="6">
+            <div class="slide-header">
+                <h2 class="slide-title">ECC (楕円曲線暗号) とは</h2>
+            </div>
+            <div class="slide-content">
+                <div class="info-box">
+                    主に公開鍵暗号方式で用いられる、<span class="highlight">楕円曲線上の離散対数問題</span>の困難性を利用した暗号の種類
+                </div>
+
+                <h3 style="color: var(--accent-primary); margin: 30px 0 16px;">代表的なアルゴリズム</h3>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>アルゴリズム</th>
+                            <th>用途</th>
+                            <th>特徴</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="highlight">ECDH</span></td>
+                            <td>鍵交換</td>
+                            <td>Elliptic curve Diffie-Hellman</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">ECDSA</span></td>
+                            <td>署名</td>
+                            <td>最も広く使われる署名方式</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">Schnorr署名</span></td>
+                            <td>署名</td>
+                            <td>シンプル、集約署名が可能</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">EdDSA</span></td>
+                            <td>署名</td>
+                            <td>決定論的nonce、高速</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="info-box" style="margin-top: 30px;">
+                    これらの共通のベースとなる<span class="highlight">楕円曲線上での群</span>を作っていきます
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 楕円曲線と演算の定義 -->
+        <div class="slide" data-slide="7">
+            <div class="slide-header">
+                <h2 class="slide-title">楕円曲線と演算の定義</h2>
+            </div>
+            <div class="slide-content">
+                <p>平面上での楕円曲線とは、以下のような形で表される平面曲線です:</p>
+
+                <div class="card-grid">
+                    <div class="card">
+                        <h3>Weierstrassの標準形</h3>
+                        <div class="formula-box">
+                            $$y^2 = x^3 + ax + b$$
+                        </div>
+                        <p class="note">ECDSAなどで使用</p>
+                    </div>
+                    <div class="card card-alt">
+                        <h3>Edwards曲線</h3>
+                        <div class="formula-box">
+                            $$ax^2 + y^2 = 1 + dx^2y^2$$
+                        </div>
+                        <p class="note">EdDSAで使用</p>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <ul>
+                        <li>パラメータ ($a, b$ や $a, d$) の値はアルゴリズムごとに異なる</li>
+                        <li>曲線が<span class="highlight">非特異</span>であることが必要（判別式 $\neq$ 0）</li>
+                        <li>実平面上に限らない一般的な楕円曲線はより複雑（本筋と関係ないため省略）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 代表的な曲線例 -->
+        <div class="slide" data-slide="8">
+            <div class="slide-header">
+                <h2 class="slide-title">代表的な曲線例</h2>
+            </div>
+            <div class="slide-content">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3>secp256k1</h3>
+                        <ul>
+                            <li>ECDSAなどで使用</li>
+                            <li><span class="highlight">Bitcoin</span>で使用されている</li>
+                            <li>Weierstrass形式: $a=0, b=7$</li>
+                        </ul>
+                        <div class="formula-box">
+                            $$y^2 = x^3 + 7$$
+                        </div>
+                    </div>
+                    <div class="card card-alt">
+                        <h3>Ed25519</h3>
+                        <ul>
+                            <li>EdDSAの曲線</li>
+                            <li><span class="highlight">ssh-keygen</span>でよく見るやつ</li>
+                            <li>Edwards形式: $a=-1, d=-\frac{121665}{121666}$</li>
+                        </ul>
+                        <div class="formula-box" style="font-size: 0.9em;">
+                            $$-x^2 + y^2 = 1 - \frac{121665}{121666}x^2y^2$$
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>その他のパラメータ:</strong><br>
+                    法となる素数 $p$、ベースポイント $G$、$G$ の位数 $n$ なども重要なパラメータ
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 楕円曲線と演算の幾何的イメージ -->
+        <div class="slide" data-slide="9">
+            <div class="slide-header">
+                <h2 class="slide-title">楕円曲線と演算の幾何的イメージ</h2>
+            </div>
+            <div class="slide-content">
+                <div class="info-box">
+                    図示や映像を見るのが手っ取り早い<br>
+                    <a href="https://www.youtube.com/watch?v=1nkE62sUe7E" target="_blank">YouTube: Elliptic Curve Point Addition</a>
+                </div>
+
+                <h3 style="color: var(--accent-primary); margin: 24px 0 16px;">群の構造</h3>
+                <p>この演算で、<span class="highlight">無限遠点</span>を単位元として曲線に含めることで、楕円曲線は<strong>群</strong>になります:</p>
+
+                <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="card">
+                        <h3>単位元</h3>
+                        <p>無限遠点 $\mathcal{O}$</p>
+                    </div>
+                    <div class="card">
+                        <h3>逆元</h3>
+                        <p>$P = (x, y)$ の逆元は $-P = (x, -y)$<br>(x軸対称の点)</p>
+                    </div>
+                    <div class="card">
+                        <h3>結合法則</h3>
+                        <p>$(P + Q) + R = P + (Q + R)$<br>(図で確認可能)</p>
+                    </div>
+                </div>
+
+                <div class="diagram">
+                    <p>TODO: 図</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 有限体上の楕円曲線 -->
+        <div class="slide" data-slide="10">
+            <div class="slide-header">
+                <h2 class="slide-title">有限体上の楕円曲線</h2>
+            </div>
+            <div class="slide-content">
+                <p>この曲線を<span class="highlight">有限体</span>上で定義します。</p>
+
+                <div class="info-box">
+                    <strong>有限体 $\mathbb{F}_p$:</strong><br>
+                    素数 $p$ を法とする整数の剰余集合 $\{0, 1, ..., p-1\}$<br>
+                    四則演算が閉じている（0以外に乗法の逆元が存在）
+                </div>
+
+                <div class="two-column">
+                    <p>TODO: 図</p>
+                    <!-- <div class="column">
+                        <div class="column-title">実平面上の曲線</div>
+                        <div class="diagram" style="min-height: 150px;">
+                            <svg width="200" height="150">
+                                <path d="M 20 75 Q 60 20, 100 40 Q 140 60, 180 30" 
+                                      fill="none" stroke="#00d4aa" stroke-width="2"/>
+                                <path d="M 20 75 Q 60 130, 100 110 Q 140 90, 180 120" 
+                                      fill="none" stroke="#00d4aa" stroke-width="2"/>
+                                <text x="70" y="140" fill="#a0a0a0" font-size="12">滑らかな曲線</text>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="column-title">有限体上の曲線</div>
+                        <div class="diagram" style="min-height: 150px;">
+                            <svg width="200" height="150">
+                                <circle cx="40" cy="50" r="3" fill="#00d4aa"/>
+                                <circle cx="80" cy="30" r="3" fill="#00d4aa"/>
+                                <circle cx="120" cy="70" r="3" fill="#00d4aa"/>
+                                <circle cx="60" cy="100" r="3" fill="#00d4aa"/>
+                                <circle cx="100" cy="110" r="3" fill="#00d4aa"/>
+                                <circle cx="140" cy="90" r="3" fill="#00d4aa"/>
+                                <circle cx="160" cy="40" r="3" fill="#00d4aa"/>
+                                <circle cx="30" cy="120" r="3" fill="#00d4aa"/>
+                                <circle cx="90" cy="60" r="3" fill="#00d4aa"/>
+                                <circle cx="130" cy="50" r="3" fill="#00d4aa"/>
+                                <text x="50" y="140" fill="#a0a0a0" font-size="12">ランダムな点の集合</text>
+                            </svg>
+                        </div> 
+                    </div>-->
+                </div>
+
+                <div class="info-box" style="background: rgba(255, 215, 0, 0.1); border-left-color: var(--accent-gold);">
+                    <strong>安全性の根拠:</strong><br>
+                    この集合上での離散対数問題の困難性<br>
+                    → 順に計算を繰り返せば $g^x \equiv m$ は計算できるが、<br>
+                    $m$ と $g$ から $x$ を復元できない
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: ECDH -->
+        <div class="slide" data-slide="11">
+            <div class="slide-header">
+                <h2 class="slide-title">ECDH: 楕円曲線Diffie-Hellman鍵交換</h2>
+            </div>
+            <div class="slide-content">
+                <h3 style="color: var(--accent-primary); margin-bottom: 20px;">手順</h3>
+                
+                <ol class="steps">
+                    <li>Alice, Bob間で曲線やベースポイント $G$、その位数 $n$ を共有</li>
+                    <li>Alice, Bobが互いにランダムな秘密の整数 $d_A, d_B \in [1, n-1]$ を定め、<br>
+                        $Q_A = d_A G$、$Q_B = d_B G$ の点の座標だけ教え合う</li>
+                    <li>Aliceは $d_A Q_B$、Bobは $d_B Q_A$ を計算<br>
+                        → これらは同じ値 $K = d_A d_B G$ になる</li>
+                </ol>
+
+                <div class="two-column" style="margin-top: 30px;">
+                    <div class="column">
+                        <div class="info-box">
+                            <strong>ポイント 1:</strong><br>
+                            $d_A$ をAliceの<span class="highlight">秘密鍵</span>、<br>
+                            $Q_A$ をAliceの<span class="highlight">公開鍵</span>と呼ぶ<br>
+                            両者は<strong>自分の秘密鍵を明かすことなく</strong>、<br>同じ値 $K$ を共有した
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="info-box warning-box">
+                            <strong>ポイント 2:</strong><br>
+                            通信が傍受されていても、<br>
+                            $d_A$ と $d_B$ のどちらも知らない第三者は<br>
+                            <span class="highlight">$K$ を作れない</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-box" style="margin-top: 10px;">
+                    $K$（楕円曲線上の点）のx座標を共通鍵の素とすれば、<br>
+                    信頼できない通信路上でも安全に二者間の共通鍵を作成できる
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: ECDSA (署名者) -->
+        <div class="slide" data-slide="12">
+            <div class="slide-header">
+                <h2 class="slide-title">ECDSA: Alice (署名者)</h2>
+                <p class="slide-subtitle">Elliptic Curve Digital Signature Algorithm</p>
+            </div>
+            <div class="slide-content">
+                <div class="info-box">
+                    SSL証明書やBitcoinの署名など、幅広く使われている楕円曲線暗号署名のスタンダード<br>
+                    1999年にNISTにより標準化
+                </div>
+
+                <h3 style="color: var(--accent-primary); margin: 24px 0 16px;">署名手順</h3>
+                
+                <ol class="steps">
+                    <li>Aliceが秘密鍵 $d_A \in [1, n-1]$ を作り、公開鍵 $Q_A = d_A G$ を計算</li>
+                    <li>メッセージ $m$ のハッシュ値を $e$ とする ($e = H(m)$)</li>
+                    <li>位数 $n$ のビット長分だけ $e$ の上位をマスクして、この値を $z$ とする</li>
+                    <li>乱数 $k \in [1, n-1]$ を作って、$(x, y) = kG$ を計算</li>
+                    <li>$r = x \mod n$ と $s = k^{-1}(z + r d_A) \mod n$ を計算</li>
+                    <li>$(r, s)$ を署名として、メッセージ $m$ と一緒にBobに送信</li>
+                </ol>
+
+                <div class="info-box">
+                    $k$ は<span class="highlight">nonce</span>と呼ばれ、内部的な秘密鍵となる。<br>
+                    $k$ は有限体 $\mathbb{F}_n$ の元なので、$k^{-1}$ が存在する。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: ECDSA (検証者) -->
+        <div class="slide" data-slide="13">
+            <div class="slide-header">
+                <h2 class="slide-title">ECDSA: Bob (検証者)</h2>
+            </div>
+            <div class="slide-content">
+                <h3 style="color: var(--accent-secondary); margin-bottom: 16px;">検証手順</h3>
+                
+                <ol class="steps">
+                    <li>$(r, s)$ を受け取る</li>
+                    <li>Aliceと同様の手順でメッセージ $m$ のハッシュ値 $e$ と、そのマスク $z$ を計算</li>
+                    <li>$u_1 = z s^{-1} \mod n$、$u_2 = r s^{-1} \mod n$ を計算</li>
+                    <li>$(x', y') = u_1 G + u_2 Q_A$ を計算</li>
+                    <li>$x' \equiv r \equiv x \pmod{n}$ なら、<span class="highlight">正当な署名</span></li>
+                </ol>
+
+                <div class="info-box" style="margin-top: 24px;">
+                    <strong>公開情報:</strong><br>
+                    パラメータ ($p, G, n$)、Aliceの公開鍵 $Q_A$、<br>
+                    メッセージ $m$、署名 $(r, s)$
+                </div>
+
+                <div class="note">
+                    手計算で実際に変数を展開していくと検証される様子がわかって気持ち良い
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: PS3事件 -->
+        <div class="slide" data-slide="14">
+            <div class="slide-header">
+                <h2 class="slide-title">余談: PS3事件</h2>
+                <p class="slide-subtitle">固定nonceの悲劇</p>
+            </div>
+            <div class="slide-content">
+                <div class="timeline">
+                    <div class="timeline-item alert">
+                        <span class="timeline-year">SONYのミス</span>
+                        <p>プレステ3のソフトウェア署名にECDSAを採用していたが、<br>
+                        <span class="highlight">全ての署名で同じnonce $k$を使い回して</span>しまった</p>
+                    </div>
+                    <div class="timeline-item alert">
+                        <span class="timeline-year">2010年</span>
+                        <p><strong>fail0verflow</strong>チーム (marcan, bushing, sven) と<br>
+                        <strong>George Hotz</strong> が脆弱性から署名用秘密鍵 $d_A$ を逆算することに成功</p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">結果</span>
+                        <p>jailbreak（脱獄）が可能に → 非公式ゲーム実行可能に</p>
+                    </div>
+                </div>
+
+                <div class="info-box warning-box">
+                    <strong>なぜ秘密鍵が漏れるのか:</strong><br>
+                    同じ$k$で2つのメッセージに署名すると、連立方程式から$k$と$d_A$が解ける
+                    <div class="math-derivation">
+                        <div class="math-step">
+                            $s_1 = k^{-1}(z_1 + r d_A) \mod n$
+                        </div>
+                        <div class="math-step">
+                            $s_2 = k^{-1}(z_2 + r d_A) \mod n$
+                        </div>
+                        <div class="math-step" style="color: var(--accent-gold);">
+                            $k \equiv \frac{z_1 - z_2}{s_1 - s_2} \mod n$
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Snowden事件 -->
+        <div class="slide" data-slide="15">
+            <div class="slide-header">
+                <h2 class="slide-title">余談2: Snowden事件</h2>
+                <p class="slide-subtitle">楕円曲線暗号に潜むバックドアの可能性</p>
+            </div>
+            <div class="slide-content">
+                <div class="info-box warning-box">
+                    NIST-p256などの楕円曲線の乱数生成器としてNSAが推奨していた<br>
+                    <strong>Dual_EC_DRBG</strong> に、<span class="highlight">バックドアが仕込まれていたのではないか</span>という疑惑
+                </div>
+
+                <h3 style="color: var(--accent-primary); margin: 24px 0 16px;">問題の所在</h3>
+                
+                <ul>
+                    <li>Dual_EC_DRBGの安全性は、<strong>2つのベースポイントの離散対数問題</strong>に依存</li>
+                    <li>そのベースポイントの<span class="highlight">決定根拠が不明瞭</span></li>
+                    <li>NSAが事前に解となるスカラー値を把握しているポイントを<br>
+                        あえて設定したのではないか、という疑念</li>
+                </ul>
+
+                <div class="info-box">
+                    <strong>影響:</strong><br>
+                    乱数生成の生成パターンが予想可能になると、<br>
+                    nonceなどの値が割れてしまい、結果的に<span class="highlight">秘密鍵の復元</span>に使われかねない
+                </div>
+
+                <p class="note">
+                    参考: <a href="https://techmedia-think.hatenablog.com/entry/2020/10/14/235117" target="_blank">楕円曲線暗号の標準化とバックドア</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 16: Schnorr署名 -->
+        <div class="slide" data-slide="16">
+            <div class="slide-header">
+                <h2 class="slide-title">Schnorr署名</h2>
+                <p class="slide-subtitle">1989年にClaus P. Schnorrによって発明</p>
+            </div>
+            <div class="slide-content">
+                <div class="info-box">
+                    2008年まで特許の都合であまり利用されていなかったが、<br>
+                    ECDSAより検証の効率が良く、<span class="highlight">集約署名</span>が可能
+                </div>
+
+                <div class="two-column">
+                    <div class="column">
+                        <div class="column-title">Alice (署名者)</div>
+                        <ol>
+                            <li>パラメータ共有 ($G$, $n$)</li>
+                            <li>秘密鍵 $d_A$ と公開鍵 $Q_A = d_A G$ を用意</li>
+                            <li>乱数 $r$ を用いて $R = rG$ を計算</li>
+                            <li>メッセージ $m$ と $R$ を結合 ($R \| m$)</li>
+                            <li>$s = r + H(R \| m) d_A$ を計算</li>
+                            <li>$(R, s)$ を署名として送信</li>
+                        </ol>
+                    </div>
+                    <div class="column column-alt">
+                        <div class="column-title">Bob (検証者)</div>
+                        <ol>
+                            <li>$(R, s)$ を受け取る</li>
+                            <li>$sG = R + H(R \| m) Q_A$ が成り立てば正当</li>
+                        </ol>
+                        
+                        <div class="info-box" style="margin-top: 20px;">
+                            <strong>証明:</strong>
+                            <div class="formula-box" style="padding: 12px;">
+                                $sG = (r + H(R\|m)d_A)G$<br>
+                                $= rG + H(R\|m)d_AG$<br>
+                                $= R + H(R\|m)Q_A$ ✓
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="note" style="text-align: center; margin-top: 20px;">
+                    <strong>めちゃくちゃシンプル</strong>です
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: EdDSA -->
+        <div class="slide" data-slide="17">
+            <div class="slide-header">
+                <h2 class="slide-title">EdDSA</h2>
+                <p class="slide-subtitle">Edwards-curve Digital Signature Algorithm</p>
+            </div>
+            <div class="slide-content">
+                <div class="info-box warning-box">
+                    <strong>注意:</strong> 今までのWeierstrass形式の曲線ではなく、<br>
+                    <span class="highlight">twisted Edwards曲線</span>を用いている
+                </div>
+
+                <div class="two-column">
+                    <div class="column">
+                        <div class="column-title">Alice (署名者)</div>
+                        <ol>
+                            <li>パラメータ共有 ($G$)</li>
+                            <li>秘密鍵 $d_A$ のハッシュ $H(d_A)$ の前半32バイトを $s$ とし、<br>
+                                公開鍵 $Q_A = sG$ を計算</li>
+                            <li>$H(d_A)$ の後半32バイトを $\text{prefix}$ とする</li>
+                            <li>$r = H(\text{prefix} \| m) \mod n$ として、$R = rG$ を計算</li>
+                            <li>$k = H(R \| Q_A \| m) \mod n$ を計算</li>
+                            <li>$S = (r + ks) \mod n$ として、$(R, S)$ を送信</li>
+                        </ol>
+                    </div>
+                    <div class="column column-alt">
+                        <div class="column-title">Bob (検証者)</div>
+                        <ol>
+                            <li>$(R, S)$ を受け取る</li>
+                            <li>$k = H(R \| Q_A \| m) \mod n$ を計算</li>
+                            <li>$8(SG) = 8(R + kQ_A)$ が成立すれば正当</li>
+                        </ol>
+
+                        <div class="info-box" style="margin-top: 20px;">
+                            <strong>Schnorrとの違い:</strong>
+                            <ul>
+                                <li>nonce $r$ を<span class="highlight">決定論的に計算</span><br>
+                                    = 乱数生成器を用いていない</li>
+                                <li><span class="highlight">8</span> (cofactor) が登場する</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: EdDSAの特徴 -->
+        <div class="slide" data-slide="18">
+            <div class="slide-header">
+                <h2 class="slide-title">EdDSAの特徴</h2>
+            </div>
+            <div class="slide-content">
+                <div class="card-grid">
+                    <div class="card">
+                        <h3>決定論的nonce</h3>
+                        <p>秘密鍵のハッシュから決定論的に計算される</p>
+                        <div class="info-box">
+                            <strong>メリット:</strong><br>
+                            乱数生成器の安全性に依存しない
+                        </div>
+                        <p class="note">PS3やSnowdenの問題を回避</p>
+                    </div>
+                    <div class="card card-alt">
+                        <h3>cofactor 8</h3>
+                        <p>twisted Edwards曲線では位数が $n = 8L$ (8の倍数)</p>
+                        <div class="info-box">
+                            <strong>完全加法公式:</strong><br>
+                            点による場合分けが不要 →<br>
+                            サイドチャネル攻撃への耐性
+                        </div>
+                        <p class="note">小位数部分群の影響をキャンセルするため8をかける</p>
+                    </div>
+                </div>
+
+                <div class="formula-box" style="margin-top: 30px;">
+                    <h3 style="color: var(--accent-primary); margin-bottom: 16px;">twisted Edwards形式の加法公式</h3>
+                    $$x_3 = \frac{x_1 y_2 + x_2 y_1}{1 + d x_1 x_2 y_1 y_2}, \quad y_3 = \frac{y_1 y_2 - a x_1 x_2}{1 - d x_1 x_2 y_1 y_2}$$
+                    <p style="margin-top: 16px; color: var(--text-secondary);">
+                        $P = Q$ の場合も同じ式が使える（完全加法公式）
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: SSH -->
+        <div class="slide" data-slide="19">
+            <div class="slide-header">
+                <h2 class="slide-title">応用例: SSH</h2>
+            </div>
+            <div class="slide-content">
+                <div class="flow-diagram" style="flex-direction: column; gap: 12px;">
+                    <div class="flow-node" style="width: 80%;">
+                        <strong>1. 鍵交換</strong><br>
+                        <small>ECDHEなどで共有秘密を作成 → 共通鍵を導出</small>
+                    </div>
+                    <span class="flow-arrow">↓</span>
+                    <div class="flow-node" style="width: 80%; border-color: var(--accent-secondary);">
+                        <strong>2. サーバ認証</strong><br>
+                        <small>サーバはホスト鍵で自分を証明 → クライアントは~/.ssh/known_hostsと照合 or 登録</small>
+                    </div>
+                    <span class="flow-arrow">↓</span>
+                    <div class="flow-node" style="width: 80%; border-color: var(--accent-gold);">
+                        <strong>3. ユーザ認証</strong><br>
+                        <small>サーバがチャレンジを送信 → クライアントは秘密鍵で署名 → 公開鍵で検証</small>
+                    </div>
+                </div>
+
+                <div class="info-box" style="margin-top: 30px;">
+                    <strong>楕円曲線暗号の使用箇所:</strong>
+                    <ul>
+                        <li>鍵交換: <span class="code">curve25519-sha256</span> など</li>
+                        <li>ホスト鍵・ユーザ認証: <span class="code">ssh-ed25519</span>, <span class="code">ecdsa-sha2-nistp256</span> など</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: Bitcoin -->
+        <div class="slide" data-slide="20">
+            <div class="slide-header">
+                <h2 class="slide-title">応用例: Bitcoin</h2>
+            </div>
+            <div class="slide-content">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <span class="timeline-year">1. UTXOをアンロック</span>
+                        <p>未使用の自分宛送金トランザクション(UTXO)を秘密鍵で<span class="highlight">署名</span>して使用可能に</p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">2. トランザクション作成</span>
+                        <p>署名と公開鍵つきUTXOをinput、相手の公開鍵ハッシュをoutputとして登録</p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">3. 検証</span>
+                        <p>マイナーが公開鍵ハッシュ計算と<span class="highlight">署名検証</span>を行い、正当ならプールに保持</p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">4. ブロック化 (PoW)</span>
+                        <p>マイナーがトランザクションを集めてブロックを作成、nonce探索</p>
+                    </div>
+                </div>
+
+                <div class="two-column" style="margin-top: 20px;">
+                    <div class="column">
+                        <div class="info-box">
+                            <strong>従来:</strong><br>
+                            曲線: secp256k1<br>
+                            署名: <span class="highlight">ECDSA</span>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="info-box" style="border-left-color: var(--accent-gold);">
+                            <strong>Taproot (2021年~):</strong><br>
+                            署名: <span class="highlight">Schnorr署名</span><br>
+                            マルチシグ、バッチ検証が可能に
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 21: 演習 -->
+        <div class="slide" data-slide="21">
+            <div class="slide-header">
+                <h2 class="slide-title">演習</h2>
+            </div>
+            <div class="slide-content" style="display: flex; align-items: center; justify-content: center;">
+                <div class="exercise-box">
+                    <h2>🚀 実装してみよう</h2>
+                    <p style="font-size: 1.3rem; margin: 20px 0;">
+                        EdDSA (または DH鍵交換 / Schnorr署名)
+                    </p>
+                    <div style="margin: 30px 0; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+                        <p style="color: var(--text-secondary);">
+                            推奨言語: Python, Go, Rust, etc.
+                        </p>
+                        <p style="color: var(--text-secondary); margin-top: 8px;">
+                            参考実装: <a href="https://github.com/dalek-cryptography/curve25519-dalek" target="_blank">curve25519-dalek</a> (Rust)
+                        </p>
+                    </div>
+                    <div class="info-box" style="text-align: left;">
+                        <strong>ステップ:</strong>
+                        <ol style="margin-top: 12px;">
+                            <li>有限体 $\mathbb{F}_p$ の実装</li>
+                            <li>楕円曲線上の点の定義と加算</li>
+                            <li>スカラー倍算の実装</li>
+                            <li>署名/検証または鍵交換の実装</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ナビゲーション -->
+    <div class="navigation">
+        <div class="keyboard-hint">
+            <span class="key">←</span> 前へ
+            <span class="key">→</span> 次へ
+        </div>
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">
+            ← 前へ
+        </button>
+        <div class="slide-counter">
+            <span id="currentSlide">1</span> / <span id="totalSlides">21</span>
+        </div>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">
+            次へ →
+        </button>
+    </div>
+
+    <!-- プログレスバー -->
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar" style="width: 4.76%;"></div>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 21;
+
+        // スライド切り替え
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            
+            if (n > totalSlides) currentSlide = 1;
+            if (n < 1) currentSlide = totalSlides;
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[currentSlide - 1].classList.add('active');
+            
+            // カウンター更新
+            document.getElementById('currentSlide').textContent = currentSlide;
+            
+            // プログレスバー更新
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            // ボタン状態
+            document.getElementById('prevBtn').disabled = currentSlide === 1;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+            
+            // MathJax再レンダリング
+            if (window.renderMathInElement) {
+                renderMathInElement(slides[currentSlide - 1], {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        function changeSlide(n) {
+            currentSlide += n;
+            showSlide(currentSlide);
+        }
+
+        // キーボード操作
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                changeSlide(-1);
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                currentSlide = 1;
+                showSlide(currentSlide);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                currentSlide = totalSlides;
+                showSlide(currentSlide);
+            }
+        });
+
+        // MathJax初期化
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+            showSlide(currentSlide);
+        });
+
+        // スワイプ対応（モバイル）
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) changeSlide(1);
+            if (touchEndX > touchStartX + 50) changeSlide(-1);
+        }
+    </script>
+</body>
+</html>
