@@ -2,7 +2,7 @@ defmodule SignatureEcdsa do
   import Secp256k1
 
   def sign(d, z) do
-    k = :rand.uniform(order() - 1) |> round()
+    k = :rand.uniform(order() - 2) + 1 |> round()
     r = (scalar(g(), k)).x.num
     k_inv = pow(k, order() - 2)
     s = (z + r * d) * k_inv |> rem(order())
