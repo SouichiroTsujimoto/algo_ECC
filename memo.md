@@ -51,3 +51,6 @@ https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki
 # ssh
 ## handshake
 https://goteleport.com/blog/ssh-handshake-explained/
+
+# ed25519
+https://www.cryptrec.go.jp/exreport/cryptrec-ex-3102-2021.pdf

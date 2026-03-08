@@ -9,7 +9,6 @@ defmodule SignatureSchnorr do
     |> Base.encode16(case: :lower)
     |> String.to_integer(16)
     |> rem(order())
-    IO.puts "sig h: #{h}"
     s = r + h * d
     %{large_r: large_r, s: s}
   end
@@ -19,8 +18,6 @@ defmodule SignatureSchnorr do
     |> Base.encode16(case: :lower)
     |> String.to_integer(16)
     |> rem(order())
-
-    IO.puts "verify h: #{h}"
     scalar(g(), s) == add(large_r, scalar(q, h))
   end
 end
